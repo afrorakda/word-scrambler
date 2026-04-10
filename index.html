@@ -16,6 +16,12 @@
             --input-bg: #fafafa;
             --radius: 15px;
             --text-gray: #666;
+            --placeholder: #bbb; /* 指定の透かし色 */
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
         }
 
         body {
@@ -27,6 +33,10 @@
             justify-content: center;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+            /* 長押し選択を徹底排除 */
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         .container {
@@ -62,14 +72,18 @@
             font-weight: 700;
             line-height: 1.6;
             color: var(--main) !important;
-            box-sizing: border-box;
             outline: none;
             resize: none;
             -webkit-appearance: none;
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
             transition: opacity 0.2s ease;
+            /* 入力時のみ選択可能にする */
+            user-select: text;
+            -webkit-user-select: text;
         }
+        /* 透かし文字の色指定 */
+        textarea::placeholder { color: var(--placeholder); -webkit-text-fill-color: var(--placeholder); opacity: 1; }
 
         #chaosCanvas {
             display: none;
@@ -81,10 +95,11 @@
             background: #fff;
             border: 2px solid #000;
             border-radius: var(--radius);
-            box-sizing: border-box;
             overflow: hidden;
             cursor: pointer;
             transition: background 0.1s, opacity 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         #chaosCanvas.scrambling { background: #000 !important; }
@@ -95,9 +110,7 @@
             font-weight: 900;
             color: #000;
             white-space: nowrap;
-            user-select: none;
-            -webkit-user-select: none;
-            transition: transform 0.05s linear, top 0.05s linear, left 0.05s linear;
+            pointer-events: none; /* 単語自体の選択を禁止 */
         }
 
         #chaosCanvas.scrambling .cut-up-word { color: #fff; filter: blur(1px); }
@@ -209,16 +222,15 @@
             span.innerText = line;
             chaosCanvas.appendChild(span);
 
-            // 要素サイズ取得後の配置（見切れ防止）
             const w = span.offsetWidth;
             const h = span.offsetHeight;
 
-            // キャンバス全体に散らす（余白確保）
-            const top = Math.random() * (canvasRect.height - h - 20) + 10;
-            const left = Math.random() * (canvasRect.width - w - 20) + 10;
+            // 全方位に散るようにマージンを最小限に
+            const top = Math.random() * (canvasRect.height - h - 10) + 5;
+            const left = Math.random() * (canvasRect.width - w - 10) + 5;
 
-            const rotate = (Math.random() - 0.5) * 50; // -25〜25度
-            const scaleX = Math.random() < 0.2 ? -1 : 1; // 20%で反転
+            const rotate = (Math.random() - 0.5) * 60; // 少し傾きを強化
+            const scaleX = Math.random() < 0.25 ? -1 : 1; // 反転率を25%にアップ
 
             span.style.top = `${top}px`;
             span.style.left = `${left}px`;
@@ -256,6 +268,7 @@
         chaosCanvas.style.display = 'none';
         textInput.style.display = 'block';
         textInput.style.opacity = '1';
+        updateUI();
         textInput.focus();
     }
 
