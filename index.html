@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Scrambler</title>
+    
+    <link rel="icon" href="image_109.png">
+    <link rel="apple-touch-icon" href="image_109.png">
+
+    <style>
+        :root {
+            --main: #333;
+            --bg: #fff;
+            --accent: #eee;
+            --input-bg: #fafafa;
+            --radius: 15px;
+            --text-gray: #666;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header { margin-bottom: 15px; }
+        h1 { font-size: 1.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+        .subtitle { font-size: 0.85rem; color: var(--text-gray); font-weight: 600; margin-top: 4px; }
+
+        .input-wrapper { 
+            position: relative; 
+            flex-grow: 1;
+            min-height: 250px;
+            margin-bottom: 15px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            padding-right: 45px;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.5;
+            color: var(--main) !important;
+            box-sizing: border-box;
+            outline: none;
+            resize: none;
+            -webkit-appearance: none;
+            -webkit-text-fill-color: var(--main) !important;
+            opacity: 1 !important;
+            transition: all 0.2s ease;
+        }
+        textarea::placeholder { color: #ccc; -webkit-text-fill-color: #ccc; }
+        textarea.scrambling { transform: scale(0.98); opacity: 0.7; filter: blur(1px); }
+
+        .clr-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0,0,0,0.05);
+            border: none;
+            border-radius: 50%;
+            color: #888;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .clr-btn.active { display: flex; }
+
+        .scramble-btn {
+            width: 100%;
+            background: var(--main);
+            color: #fff;
+            border: none;
+            padding: 18px;
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 0 #000;
+        }
+        .scramble-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; }
+        .scramble-btn.success { background: #4caf50; box-shadow: 0 4px 0 #2e7d32; }
+
+        .footer-btns { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px;
+        }
+        .kofi-btn {
+            flex: 6;
+            background: var(--main); color: #fff;
+            padding: 12px; border-radius: var(--radius);
+            text-decoration: none; font-weight: bold; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .home-btn {
+            flex: 4;
+            background: var(--accent); color: var(--main);
+            border: none; padding: 12px;
+            border-radius: var(--radius); font-weight: 800; font-size: 12px; 
+            cursor: pointer;
+        }
+
+        footer { 
+            font-size: 10px; 
+            color: #aaa; 
+            line-height: 1.6; 
+            font-weight: 500;
+            padding-bottom: 10px;
+        }
+        footer a { color: inherit; text-decoration: underline; }
+
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-content {
+            background: #fff; width: 85%; max-width: 340px; padding: 30px;
+            border-radius: var(--radius); text-align: left; position: relative;
+        }
+        .close-x { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #888; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Word Scrambler</h1>
+        <p class="subtitle">Shuffle lines to spark new ideas.</p>
+    </header>
+
+    <div class="input-wrapper">
+        <textarea id="textInput" placeholder="Enter words or phrases...&#10;(One per line)" oninput="updateUI()"></textarea>
+        <button class="clr-btn" id="clrBtn" onclick="clearText()">×</button>
+    </div>
+
+    <button class="scramble-btn" id="scrambleBtn" onclick="executeScramble()">SHUFFLE (RANDOM)</button>
+
+    <div class="footer-btns">
+        <a href="https://ko-fi.com/afrorakda" target="_blank" class="kofi-btn">☕️buy me a coffee</a>
+        <button class="home-btn" onclick="showModal()">Add Home</button>
+    </div>
+
+    <footer>
+        <div>No login / No tracking / No ads / Browser only</div>
+        <div><a href="https://afrorakda.com/privacy/">Privacy Policy</a> / afrorakda © 2026</div>
+    </footer>
+</div>
+
+<div id="modal" onclick="hideModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="close-x" onclick="hideModal()">×</span>
+        <h3>📱 Install</h3>
+        <p>Add to your home screen.</p>
+        <p>🍏 <strong>iPhone (Safari):</strong><br>Tap Share, then Add to Home Screen.</p>
+        <p>🤖 <strong>Android (Chrome):</strong><br>Tap Menu (⋮), then Add to Home Screen.</p>
+    </div>
+</div>
+
+<script>
+    const textInput = document.getElementById('textInput');
+    const clrBtn = document.getElementById('clrBtn');
+    const scrambleBtn = document.getElementById('scrambleBtn');
+
+    function updateUI() {
+        clrBtn.classList.toggle('active', textInput.value !== '');
+    }
+
+    function clearText() {
+        textInput.value = '';
+        updateUI();
+        textInput.focus();
+    }
+
+    function executeScramble() {
+        const rawText = textInput.value;
+        if (!rawText.trim()) return;
+
+        // 視覚的なフィードバック（一瞬ぼかす）
+        textInput.classList.add('scrambling');
+
+        setTimeout(() => {
+            let lines = rawText.split(/\r?\n/).filter(line => line.trim() !== '');
+            
+            // フィッシャー–イェーツのシャッフル
+            for (let i = lines.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [lines[i], lines[j]] = [lines[j], lines[i]];
+            }
+            
+            const result = lines.join('\n');
+            textInput.value = result;
+            textInput.classList.remove('scrambling');
+            
+            feedback();
+        }, 150);
+    }
+
+    function feedback() {
+        const originalText = "SHUFFLE (RANDOM)";
+        scrambleBtn.innerText = "SCRAMBLED!";
+        scrambleBtn.classList.add('success');
+        
+        setTimeout(() => {
+            scrambleBtn.innerText = originalText;
+            scrambleBtn.classList.remove('success');
+        }, 800);
+    }
+
+    function showModal() { document.getElementById('modal').style.display = 'flex'; }
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+</script>
+
+</body>
+</html>
