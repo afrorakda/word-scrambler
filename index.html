@@ -50,6 +50,7 @@
             margin-bottom: 20px;
         }
         
+        /* 入力用textarea */
         textarea {
             width: 100%;
             height: 100%;
@@ -68,16 +69,45 @@
             -webkit-appearance: none;
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
-            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.1s;
+            transition: opacity 0.2s ease;
         }
         textarea::placeholder { color: #ccc; -webkit-text-fill-color: #ccc; }
         
-        /* 混沌（スロット中）のスタイル */
-        textarea.scrambling { 
-            background: #333 !important;
-            color: #fff !important;
-            -webkit-text-fill-color: #fff !important;
-            transform: scale(0.96);
+        /* カオス・キャンバス（結果表示） */
+        #chaosCanvas {
+            display: none; /* 初期状態は非表示 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: var(--radius);
+            box-sizing: border-box;
+            overflow: hidden; /* 画面からはみ出さないように */
+            cursor: pointer; /* タップで編集に戻れるように */
+            transition: opacity 0.2s ease;
+        }
+        
+        /* 飛び散る言葉の断片 */
+        .cut-up-word {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #000;
+            white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 混沌（スロット中）のキャンバススタイル */
+        #chaosCanvas.scrambling { 
+            background: #000 !important;
+            border-color: #eee;
+        }
+        #chaosCanvas.scrambling .cut-up-word { 
+            color: #eee;
             filter: blur(1px);
         }
 
@@ -123,6 +153,7 @@
             margin-bottom: 25px;
             box-shadow: 0 4px 0 #000;
             letter-spacing: 1px;
+            z-index: 3; /* キャンバスより上に */
         }
         .scramble-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
         .scramble-btn.success { background: #4caf50; box-shadow: 0 4px 0 #2e7d32; }
@@ -131,6 +162,7 @@
             display: flex; 
             gap: 10px; 
             margin-bottom: 20px;
+            z-index: 3;
         }
         .kofi-btn { flex: 6; background: var(--main); color: #fff; padding: 14px; border-radius: var(--radius); text-decoration: none; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
         .home-btn { flex: 4; background: var(--accent); color: var(--main); border: none; padding: 14px; border-radius: var(--radius); font-weight: 800; font-size: 13px; cursor: pointer; }
@@ -154,7 +186,7 @@
     <div class="input-wrapper">
         <textarea id="textInput" placeholder="Paste words or sentences...&#10;(One per line)" oninput="updateUI()"></textarea>
         <button class="clr-btn" id="clrBtn" onclick="clearText()">×</button>
-    </div>
+        <div id="chaosCanvas" onclick="backToEdit()"></div> </div>
 
     <button class="scramble-btn" id="scrambleBtn" onclick="executeScramble()">SCRAMBLE IT</button>
 
@@ -183,6 +215,7 @@
     const textInput = document.getElementById('textInput');
     const clrBtn = document.getElementById('clrBtn');
     const scrambleBtn = document.getElementById('scrambleBtn');
+    const chaosCanvas = document.getElementById('chaosCanvas');
 
     function updateUI() {
         clrBtn.classList.toggle('active', textInput.value !== '');
@@ -202,6 +235,37 @@
         return array;
     }
 
+    // カオス・キャンバスへのレンダリング
+    function renderChaos(lines) {
+        chaosCanvas.innerHTML = ''; // キャンバスをクリア
+
+        lines.forEach(line => {
+            const wordSpan = document.createElement('span');
+            wordSpan.className = 'cut-up-word';
+            wordSpan.innerText = line;
+
+            // ランダムな座標（画面全体に散らばるように）
+            const top = Math.random() * 85 + 5; // 5%〜90%の範囲
+            const left = Math.random() * 80 + 10; // 10%〜90%の範囲
+            wordSpan.style.top = `${top}%`;
+            wordSpan.style.left = `${left}%`;
+
+            // ランダムな傾き (-20度〜+20度)
+            const rotate = Math.random() * 40 - 20;
+            
+            // ランダムな反転 (15%の確率)
+            const scaleX = Math.random() < 0.15 ? -1 : 1;
+
+            wordSpan.style.transform = `rotate(${rotate}deg) scaleX(${scaleX})`;
+            
+            // ランダムな重なり
+            const zIndex = Math.floor(Math.random() * 10);
+            wordSpan.style.zIndex = zIndex;
+
+            chaosCanvas.appendChild(wordSpan);
+        });
+    }
+
     function executeScramble() {
         const rawText = textInput.value;
         if (!rawText.trim()) return;
@@ -209,25 +273,48 @@
         let lines = rawText.split(/\r?\n/).filter(line => line.trim() !== '');
         if (lines.length < 2) return;
 
-        // 演出開始
-        textInput.classList.add('scrambling');
-        textInput.classList.remove('bounce');
+        // 演出開始：入力窓を隠し、キャンバスを表示
+        textInput.style.opacity = '0';
+        clrBtn.style.display = 'none';
+        
+        setTimeout(() => {
+            textInput.style.display = 'none';
+            chaosCanvas.style.display = 'block';
+            chaosCanvas.style.opacity = '1';
+            chaosCanvas.classList.add('scrambling');
+            chaosCanvas.classList.remove('bounce');
+        }, 200);
         
         let counter = 0;
-        const maxTicks = 10; // スロットのように回る回数
+        const maxTicks = 12; // スロットのように回る回数
         
         // 高速シャッフル演出（スロット）
         const interval = setInterval(() => {
-            textInput.value = shuffleArray([...lines]).join('\n');
+            // スロット中は反転なしのランダム配置だけ見せる
+            renderChaos(shuffleArray([...lines]));
             counter++;
             
             if (counter >= maxTicks) {
                 clearInterval(interval);
-                textInput.classList.remove('scrambling');
-                textInput.classList.add('bounce');
+                chaosCanvas.classList.remove('scrambling');
+                chaosCanvas.classList.add('bounce');
+                // 最終結果だけ、反転も含めたフル・カオス・レンダリング
+                renderChaos(shuffleArray([...lines]));
                 feedback();
             }
-        }, 40); // 40ms間隔で高速入れ替え
+        }, 50); // 50ms間隔で高速入れ替え
+    }
+
+    // 編集モードに戻る
+    function backToEdit() {
+        chaosCanvas.style.opacity = '0';
+        setTimeout(() => {
+            chaosCanvas.style.display = 'none';
+            textInput.style.display = 'block';
+            textInput.style.opacity = '1';
+            updateUI();
+            textInput.focus();
+        }, 200);
     }
 
     function feedback() {
